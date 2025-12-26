@@ -400,6 +400,11 @@
     el.timerContainer.setAttribute('data-type', state.sessionType);
 
     el.timerTime.classList.toggle('pulsing', state.remainingTime <= 10000 && state.isRunning);
+
+    // Update browser tab title
+    const timeStr = formatTime(state.remainingTime);
+    const typeChar = state.sessionType === SESSION_TYPES.WORK ? 'W' : 'B';
+    document.title = `${timeStr} ${typeChar} ${state.sessionCount}/4`;
   }
 
   function updateSessionCalendar() {

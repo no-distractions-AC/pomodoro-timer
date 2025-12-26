@@ -241,15 +241,15 @@ body {
 .session-dot.break { background: var(--success); border-color: var(--success); }
 
 /* Timer Controls */
-.timer-controls { display: flex; gap: var(--space-2); align-items: center; }
+.timer-controls { display: flex; gap: var(--space-3); align-items: center; margin-bottom: var(--space-5); }
 
 .control-btn {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-full);
-  border: 1px solid var(--border);
+  border: none;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -259,39 +259,19 @@ body {
 
 .control-btn:hover {
   color: var(--text);
-  border-color: var(--text-muted);
 }
 
-.control-btn .icon { width: 20px; height: 20px; }
+.control-btn .icon { width: 18px; height: 18px; }
 
 .control-btn-primary {
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   background: var(--text);
-  border-color: var(--text);
   color: var(--bg);
 }
 
-.control-btn-primary:hover { opacity: 0.9; }
-.control-btn-primary .icon { width: 24px; height: 24px; }
-
-/* Settings Button */
-.settings-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  font-family: inherit;
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: color var(--transition);
-}
-
-.settings-btn:hover { color: var(--text-secondary); }
-.settings-btn .icon { width: 16px; height: 16px; }
+.control-btn-primary:hover { opacity: 0.85; }
+.control-btn-primary .icon { width: 20px; height: 20px; }
 
 /* Focus Tasks (hidden by default) */
 .focus-tasks {
@@ -966,13 +946,12 @@ body {
    Focus Mode - Works with both dark and light theme
    ========================================================================== */
 .focus-mode .header { background: transparent; }
-.focus-mode .logo { display: none; }
 .focus-mode .side-section { display: none; }
 .focus-mode .footer { display: none; }
-.focus-mode .settings-btn { display: none; }
 .focus-mode .session-calendar { display: none; }
 .focus-mode #reset-btn { display: none; }
 .focus-mode #stop-btn { display: none; }
+.focus-mode #customize-btn { display: none; }
 
 .focus-mode .main { padding-top: 0; }
 
@@ -987,7 +966,7 @@ body {
 .focus-mode .timer-section {
   min-height: 100vh;
   justify-content: center;
-  gap: var(--space-6);
+  gap: var(--space-5);
 }
 
 .focus-mode .timer-container {
@@ -1000,22 +979,23 @@ body {
 }
 
 .focus-mode .timer-controls {
-  gap: var(--space-3);
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
 }
 
 .focus-mode .control-btn {
+  width: 44px;
+  height: 44px;
+}
+
+.focus-mode .control-btn-primary {
   width: 56px;
   height: 56px;
 }
 
-.focus-mode .control-btn-primary {
-  width: 72px;
-  height: 72px;
-}
-
 .focus-mode .control-btn-primary .icon {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
 }
 
 .focus-mode .focus-tasks {

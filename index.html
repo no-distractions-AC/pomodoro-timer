@@ -6,6 +6,7 @@
   <meta name="description" content="Pomodoro Timer - A productivity timer with task tracking">
   <meta name="theme-color" content="#0a0a0a">
   <title>Pomodoro Timer</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><ellipse cx='50' cy='58' rx='38' ry='35' fill='%23e53935'/><ellipse cx='50' cy='58' rx='30' ry='28' fill='%23ef5350'/><ellipse cx='38' cy='48' rx='8' ry='6' fill='%23ffcdd2' opacity='0.6'/><path d='M50 25 Q52 15 48 8 Q50 5 55 8 Q58 12 55 20 Q53 25 50 25' fill='%234caf50'/><ellipse cx='52' cy='22' rx='3' ry='5' fill='%2366bb6a'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,15 +16,14 @@
   <!-- Header -->
   <header class="header">
     <div class="header-left">
-      <span class="logo">pomodoro</span>
-    </div>
-    <div class="header-toggles">
-      <button class="toggle-btn" id="focus-toggle" aria-label="Toggle focus mode" title="Focus mode">
+      <button class="toggle-btn" id="focus-toggle" aria-label="Toggle focus mode" title="Focus mode (F)">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/>
           <circle cx="12" cy="12" r="3"/>
         </svg>
       </button>
+    </div>
+    <div class="header-toggles">
       <button class="toggle-btn" id="sound-toggle" aria-label="Toggle sound" title="Sound (M)">
         <svg class="icon icon-sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M11 5L6 9H2v6h4l5 4V5z"/>
@@ -44,6 +44,12 @@
           <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
         </svg>
       </button>
+      <button class="toggle-btn" id="customize-btn" aria-label="Settings" title="Settings (C)">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </div>
   </header>
 
@@ -52,6 +58,37 @@
     <div class="main-grid">
       <!-- Timer Section -->
       <section class="timer-section" aria-label="Timer">
+        <!-- Timer Controls (above timer) -->
+        <div class="timer-controls">
+          <button class="control-btn" id="reset-btn" aria-label="Reset" title="Reset (R)">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+            </svg>
+          </button>
+          <button class="control-btn control-btn-primary" id="start-btn" aria-label="Start">
+            <svg class="icon icon-play" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+              <polygon points="6 4 18 12 6 20 6 4"/>
+            </svg>
+            <svg class="icon icon-pause" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="display:none">
+              <rect x="6" y="4" width="4" height="16"/>
+              <rect x="14" y="4" width="4" height="16"/>
+            </svg>
+          </button>
+          <button class="control-btn" id="skip-btn" aria-label="Skip" title="Skip (N)">
+            <svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+              <polygon points="6 4 14 12 6 20 6 4"/>
+              <rect x="16" y="4" width="3" height="16"/>
+            </svg>
+          </button>
+          <button class="control-btn" id="stop-btn" aria-label="Stop" title="Stop (S)">
+            <svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+              <rect x="5" y="5" width="14" height="14" rx="2"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Timer Display -->
         <div class="timer-container" id="timer-container">
           <svg class="progress-ring" viewBox="0 0 200 200" aria-hidden="true">
             <circle class="progress-ring-bg" cx="100" cy="100" r="90"/>
@@ -71,45 +108,6 @@
           <div class="session-dot" data-session="3"></div>
           <div class="session-dot" data-session="4"></div>
         </div>
-
-        <!-- Timer Controls -->
-        <div class="timer-controls">
-          <button class="control-btn" id="reset-btn" aria-label="Reset" title="Reset (R)">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-              <path d="M3 3v5h5"/>
-            </svg>
-          </button>
-          <button class="control-btn control-btn-primary" id="start-btn" aria-label="Start">
-            <svg class="icon icon-play" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-              <polygon points="5 3 19 12 5 21 5 3"/>
-            </svg>
-            <svg class="icon icon-pause" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="display:none">
-              <rect x="6" y="4" width="4" height="16"/>
-              <rect x="14" y="4" width="4" height="16"/>
-            </svg>
-          </button>
-          <button class="control-btn" id="skip-btn" aria-label="Skip" title="Skip (N)">
-            <svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-              <polygon points="5 4 15 12 5 20 5 4"/>
-              <rect x="15" y="4" width="4" height="16"/>
-            </svg>
-          </button>
-          <button class="control-btn" id="stop-btn" aria-label="Stop" title="Stop (S)">
-            <svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-              <rect x="4" y="4" width="16" height="16" rx="2"/>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Settings Button -->
-        <button class="settings-btn" id="customize-btn" aria-label="Settings" title="Settings (C)">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-          <span>Settings</span>
-        </button>
 
         <!-- Focus Mode Task List -->
         <div class="focus-tasks" id="focus-tasks">
