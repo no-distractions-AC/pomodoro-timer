@@ -1,25 +1,15 @@
 /**
  * Pomodoro Timer Application
- * A productivity timer with task tracking using the 25/5/15 technique
+ * Clean, minimal productivity timer with task tracking
  */
 (function() {
   'use strict';
 
   // ==========================================================================
-  // Constants & Configuration
+  // Constants
   // ==========================================================================
-  const DEFAULT_DURATIONS = {
-    work: 25,
-    shortBreak: 5,
-    longBreak: 15
-  };
-
-  const SESSION_TYPES = {
-    WORK: 'work',
-    SHORT_BREAK: 'short-break',
-    LONG_BREAK: 'long-break'
-  };
-
+  const DEFAULT_DURATIONS = { work: 25, shortBreak: 5, longBreak: 15 };
+  const SESSION_TYPES = { WORK: 'work', SHORT_BREAK: 'short-break', LONG_BREAK: 'long-break' };
   const STORAGE_KEYS = {
     THEME: 'pomodoro-theme',
     SOUND: 'pomodoro-sound',
@@ -30,14 +20,12 @@
     SESSIONS: 'pomodoro-sessions',
     ACTIVE_TASK: 'pomodoro-active-task'
   };
-
-  const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * 90; // 565.48
+  const PROGRESS_CIRCUMFERENCE = 565.48;
 
   // ==========================================================================
   // State
   // ==========================================================================
   let state = {
-    // Timer state
     isRunning: false,
     isPaused: false,
     sessionType: SESSION_TYPES.WORK,
@@ -47,215 +35,153 @@
     startTime: null,
     pausedTime: null,
     timerInterval: null,
-
-    // Settings
     durations: { ...DEFAULT_DURATIONS },
     soundEnabled: true,
     notificationsEnabled: false,
     flashEnabled: true,
     theme: 'dark',
-
-    // Tasks
     tasks: [],
     activeTaskId: null,
-
-    // Sessions
     sessions: [],
-
-    // Audio
     audioContext: null,
-
-    // UI
     helpTyped: '',
-
-    // Mobile
     touchStartX: null,
-    touchStartY: null,
-    isSwiping: false
+    touchStartY: null
   };
 
   // ==========================================================================
   // DOM Elements
   // ==========================================================================
-  const elements = {};
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => document.querySelectorAll(sel);
+
+  let el = {};
 
   function cacheElements() {
-    // Timer
-    elements.timerTime = document.getElementById('timer-time');
-    elements.timerLabel = document.getElementById('timer-label');
-    elements.timerSession = document.getElementById('timer-session');
-    elements.timerContainer = document.querySelector('.timer-container');
-    elements.progressRing = document.querySelector('.progress-ring-progress');
-
-    // Session calendar
-    elements.sessionDots = document.querySelectorAll('.session-dot');
-
-    // Controls
-    elements.startBtn = document.getElementById('start-btn');
-    elements.skipBtn = document.getElementById('skip-btn');
-    elements.resetBtn = document.getElementById('reset-btn');
-    elements.stopBtn = document.getElementById('stop-btn');
-    elements.customizeBtn = document.getElementById('customize-btn');
-
-    // Toggles
-    elements.themeToggle = document.getElementById('theme-toggle');
-    elements.soundToggle = document.getElementById('sound-toggle');
-    elements.notificationToggle = document.getElementById('notification-toggle');
-
-    // Tasks
-    elements.taskForm = document.getElementById('add-task-form');
-    elements.taskInput = document.getElementById('task-input');
-    elements.taskList = document.getElementById('task-list');
-
-    // Stats
-    elements.statSessionsToday = document.getElementById('stat-sessions-today');
-    elements.statFocusToday = document.getElementById('stat-focus-today');
-    elements.statSessionsTotal = document.getElementById('stat-sessions-total');
-    elements.statFocusTotal = document.getElementById('stat-focus-total');
-    elements.statStreak = document.getElementById('stat-streak');
-    elements.statTasksCompleted = document.getElementById('stat-tasks-completed');
-    elements.statsSection = document.getElementById('stats-section');
-
-    // History
-    elements.historySection = document.getElementById('history-section');
-    elements.historyToggle = document.getElementById('history-toggle');
-    elements.historyContent = document.getElementById('history-content');
-    elements.historyList = document.getElementById('history-list');
-    elements.historyEmpty = document.getElementById('history-empty');
-
-    // Modals
-    elements.customizeModal = document.getElementById('customize-modal');
-    elements.customizeClose = document.getElementById('customize-close');
-    elements.customizeSave = document.getElementById('customize-save');
-    elements.customizeReset = document.getElementById('customize-reset');
-    elements.workDuration = document.getElementById('work-duration');
-    elements.shortBreakDuration = document.getElementById('short-break-duration');
-    elements.longBreakDuration = document.getElementById('long-break-duration');
-    elements.settingSound = document.getElementById('setting-sound');
-    elements.settingNotifications = document.getElementById('setting-notifications');
-    elements.settingFlash = document.getElementById('setting-flash');
-
-    elements.helpModal = document.getElementById('help-modal');
-    elements.helpClose = document.getElementById('help-close');
-
-    // Toast
-    elements.toastContainer = document.getElementById('toast-container');
-
-    // Mobile
-    elements.bottomSheetOverlay = document.getElementById('bottom-sheet-overlay');
-    elements.bottomSheet = document.getElementById('bottom-sheet');
-    elements.bottomSheetClose = document.getElementById('bottom-sheet-close');
-    elements.bottomSheetContent = document.getElementById('bottom-sheet-content');
-    elements.mobileTaskBtn = document.getElementById('mobile-task-btn');
+    el = {
+      timerTime: $('#timer-time'),
+      timerLabel: $('#timer-label'),
+      timerSession: $('#timer-session'),
+      timerContainer: $('#timer-container'),
+      progressRing: $('.progress-ring-progress'),
+      sessionDots: $$('.session-dot'),
+      startBtn: $('#start-btn'),
+      skipBtn: $('#skip-btn'),
+      resetBtn: $('#reset-btn'),
+      stopBtn: $('#stop-btn'),
+      customizeBtn: $('#customize-btn'),
+      themeToggle: $('#theme-toggle'),
+      soundToggle: $('#sound-toggle'),
+      taskForm: $('#add-task-form'),
+      taskInput: $('#task-input'),
+      taskList: $('#task-list'),
+      taskCount: $('#task-count'),
+      statSessionsToday: $('#stat-sessions-today'),
+      statFocusToday: $('#stat-focus-today'),
+      statStreak: $('#stat-streak'),
+      statSessionsTotal: $('#stat-sessions-total'),
+      statsSection: $('#stats-section'),
+      historySection: $('#history-section'),
+      historyToggle: $('#history-toggle'),
+      historyContent: $('#history-content'),
+      historyList: $('#history-list'),
+      historyEmpty: $('#history-empty'),
+      customizeModal: $('#customize-modal'),
+      customizeClose: $('#customize-close'),
+      customizeSave: $('#customize-save'),
+      customizeReset: $('#customize-reset'),
+      workDuration: $('#work-duration'),
+      shortBreakDuration: $('#short-break-duration'),
+      longBreakDuration: $('#long-break-duration'),
+      settingSound: $('#setting-sound'),
+      settingNotifications: $('#setting-notifications'),
+      settingFlash: $('#setting-flash'),
+      clearHistoryBtn: $('#clear-history-btn'),
+      helpModal: $('#help-modal'),
+      helpClose: $('#help-close'),
+      toastContainer: $('#toast-container'),
+      bottomSheetOverlay: $('#bottom-sheet-overlay'),
+      bottomSheet: $('#bottom-sheet'),
+      bottomSheetClose: $('#bottom-sheet-close'),
+      bottomSheetContent: $('#bottom-sheet-content'),
+      mobileTaskBtn: $('#mobile-task-btn')
+    };
   }
 
   // ==========================================================================
-  // LocalStorage Helpers
+  // Storage
   // ==========================================================================
-  function saveToStorage(key, value) {
+  function save(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (e) {
       if (e.name === 'QuotaExceededError') {
-        showToast('Storage full. Consider clearing old history.', 'error');
+        showToast('Storage full');
       }
-      console.error('Failed to save to localStorage:', e);
     }
   }
 
-  function loadFromStorage(key, defaultValue = null) {
+  function load(key, defaultValue = null) {
     try {
       const item = localStorage.getItem(key);
       return item ? JSON.parse(item) : defaultValue;
-    } catch (e) {
-      console.error('Failed to load from localStorage:', e);
+    } catch {
       return defaultValue;
     }
   }
 
-  function removeFromStorage(key) {
-    try {
-      localStorage.removeItem(key);
-    } catch (e) {
-      console.error('Failed to remove from localStorage:', e);
-    }
-  }
-
   // ==========================================================================
-  // Theme Management
+  // Theme
   // ==========================================================================
   function initTheme() {
-    const savedTheme = loadFromStorage(STORAGE_KEYS.THEME);
-
-    if (savedTheme) {
-      state.theme = savedTheme;
-    } else {
-      // Check system preference
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-        state.theme = 'light';
-      } else {
-        state.theme = 'dark';
-      }
+    const saved = load(STORAGE_KEYS.THEME);
+    if (saved) {
+      state.theme = saved;
+    } else if (window.matchMedia?.('(prefers-color-scheme: light)').matches) {
+      state.theme = 'light';
     }
-
-    applyTheme(state.theme);
-
-    // Listen for system theme changes
-    if (window.matchMedia) {
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-        if (!loadFromStorage(STORAGE_KEYS.THEME)) {
-          state.theme = e.matches ? 'dark' : 'light';
-          applyTheme(state.theme);
-        }
-      });
-    }
+    applyTheme();
   }
 
-  function applyTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    updateThemeToggleIcon();
-
-    // Update meta theme-color
-    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-    if (metaThemeColor) {
-      const colors = { dark: '#0f1419', light: '#faf8f5', focus: '#000000' };
-      metaThemeColor.setAttribute('content', colors[theme]);
-    }
+  function applyTheme() {
+    document.documentElement.setAttribute('data-theme', state.theme);
+    updateThemeIcon();
   }
 
-  function updateThemeToggleIcon() {
-    const icon = elements.themeToggle.querySelector('.toggle-icon');
-    const icons = { dark: '🌙', light: '☀️', focus: '🎯' };
-    icon.textContent = icons[state.theme];
+  function updateThemeIcon() {
+    const moonIcon = el.themeToggle.querySelector('.icon-moon');
+    const sunIcon = el.themeToggle.querySelector('.icon-sun');
+    const focusIcon = el.themeToggle.querySelector('.icon-focus');
+
+    moonIcon.style.display = state.theme === 'dark' ? 'block' : 'none';
+    sunIcon.style.display = state.theme === 'light' ? 'block' : 'none';
+    focusIcon.style.display = state.theme === 'focus' ? 'block' : 'none';
   }
 
   function cycleTheme() {
     const themes = ['dark', 'light', 'focus'];
-    const currentIndex = themes.indexOf(state.theme);
-    state.theme = themes[(currentIndex + 1) % themes.length];
-
-    applyTheme(state.theme);
-    saveToStorage(STORAGE_KEYS.THEME, state.theme);
+    const idx = themes.indexOf(state.theme);
+    state.theme = themes[(idx + 1) % themes.length];
+    applyTheme();
+    save(STORAGE_KEYS.THEME, state.theme);
     playSound('click');
-    showToast(`Theme: ${state.theme.charAt(0).toUpperCase() + state.theme.slice(1)}`);
+    showToast(`${state.theme} theme`);
   }
 
   // ==========================================================================
-  // Sound System (Web Audio API)
+  // Sound
   // ==========================================================================
   function initAudio() {
-    state.soundEnabled = loadFromStorage(STORAGE_KEYS.SOUND, true);
-    updateSoundToggle();
+    state.soundEnabled = load(STORAGE_KEYS.SOUND, true);
+    updateSoundIcon();
   }
 
-  function createAudioContext() {
+  function getAudioContext() {
     if (!state.audioContext) {
       try {
         state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      } catch (e) {
-        console.error('Web Audio API not supported:', e);
+      } catch {
         state.soundEnabled = false;
-        showToast('Sound not available in this browser', 'warning');
       }
     }
     return state.audioContext;
@@ -263,265 +189,179 @@
 
   function playSound(type) {
     if (!state.soundEnabled) return;
-
-    const ctx = createAudioContext();
+    const ctx = getAudioContext();
     if (!ctx) return;
-
-    // Resume context if suspended (browser autoplay policy)
-    if (ctx.state === 'suspended') {
-      ctx.resume();
-    }
+    if (ctx.state === 'suspended') ctx.resume();
 
     const now = ctx.currentTime;
-
-    switch (type) {
-      case 'start':
-        playChime(ctx, now, [440, 550, 660], 0.15, 0.1);
-        break;
-      case 'pause':
-        playTone(ctx, now, 300, 'triangle', 0.1, 0.08);
-        break;
-      case 'complete':
-        playChime(ctx, now, [523, 659, 784, 1047], 0.2, 0.15);
-        break;
-      case 'check':
-        playTone(ctx, now, 880, 'sine', 0.1, 0.1);
-        break;
-      case 'uncheck':
-        playTone(ctx, now, 440, 'sine', 0.08, 0.08);
-        break;
-      case 'click':
-        playTone(ctx, now, 600, 'square', 0.02, 0.03);
-        break;
-      case 'skip':
-        playSwoosh(ctx, now);
-        break;
-      case 'tick':
-        playTone(ctx, now, 800, 'sine', 0.02, 0.03);
-        break;
-      case 'delete':
-        playTone(ctx, now, 200, 'triangle', 0.1, 0.1);
-        break;
-    }
+    const sounds = {
+      start: () => playChime(ctx, now, [440, 550, 660], 0.12),
+      pause: () => playTone(ctx, now, 300, 'triangle', 0.08),
+      complete: () => playChime(ctx, now, [523, 659, 784, 1047], 0.15),
+      check: () => playTone(ctx, now, 880, 'sine', 0.08),
+      uncheck: () => playTone(ctx, now, 440, 'sine', 0.06),
+      click: () => playTone(ctx, now, 600, 'square', 0.02),
+      skip: () => playSwoosh(ctx, now),
+      tick: () => playTone(ctx, now, 800, 'sine', 0.02),
+      delete: () => playTone(ctx, now, 200, 'triangle', 0.08)
+    };
+    sounds[type]?.();
   }
 
-  function playTone(ctx, startTime, frequency, waveType, duration, volume) {
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-
-    oscillator.type = waveType;
-    oscillator.frequency.setValueAtTime(frequency, startTime);
-
-    gainNode.gain.setValueAtTime(0, startTime);
-    gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.01);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
-
-    oscillator.start(startTime);
-    oscillator.stop(startTime + duration);
+  function playTone(ctx, start, freq, wave, dur, vol = 0.1) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = wave;
+    osc.frequency.setValueAtTime(freq, start);
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(vol, start + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + dur);
   }
 
-  function playChime(ctx, startTime, frequencies, noteDuration, volume) {
-    frequencies.forEach((freq, i) => {
-      playTone(ctx, startTime + i * noteDuration * 0.5, freq, 'sine', noteDuration, volume);
-    });
+  function playChime(ctx, start, freqs, dur) {
+    freqs.forEach((f, i) => playTone(ctx, start + i * dur * 0.4, f, 'sine', dur, 0.08));
   }
 
-  function playSwoosh(ctx, startTime) {
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(400, startTime);
-    oscillator.frequency.exponentialRampToValueAtTime(800, startTime + 0.1);
-
-    gainNode.gain.setValueAtTime(0, startTime);
-    gainNode.gain.linearRampToValueAtTime(0.1, startTime + 0.02);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + 0.1);
-
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
-
-    oscillator.start(startTime);
-    oscillator.stop(startTime + 0.1);
+  function playSwoosh(ctx, start) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400, start);
+    osc.frequency.exponentialRampToValueAtTime(800, start + 0.08);
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(0.08, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.08);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + 0.08);
   }
 
-  function updateSoundToggle() {
-    const icon = elements.soundToggle.querySelector('.toggle-icon');
-    icon.textContent = state.soundEnabled ? '♪' : '🔇';
-    elements.soundToggle.classList.toggle('active', state.soundEnabled);
+  function updateSoundIcon() {
+    const onIcon = el.soundToggle.querySelector('.icon-sound-on');
+    const offIcon = el.soundToggle.querySelector('.icon-sound-off');
+    onIcon.style.display = state.soundEnabled ? 'block' : 'none';
+    offIcon.style.display = state.soundEnabled ? 'none' : 'block';
   }
 
   function toggleSound() {
     state.soundEnabled = !state.soundEnabled;
-    saveToStorage(STORAGE_KEYS.SOUND, state.soundEnabled);
-    updateSoundToggle();
-
-    if (state.soundEnabled) {
-      playSound('click');
-    }
-    showToast(state.soundEnabled ? 'Sound enabled' : 'Sound muted');
+    save(STORAGE_KEYS.SOUND, state.soundEnabled);
+    updateSoundIcon();
+    if (state.soundEnabled) playSound('click');
+    showToast(state.soundEnabled ? 'Sound on' : 'Sound off');
   }
 
   // ==========================================================================
   // Notifications
   // ==========================================================================
   function initNotifications() {
-    state.notificationsEnabled = loadFromStorage(STORAGE_KEYS.NOTIFICATIONS, false);
-    state.flashEnabled = loadFromStorage(STORAGE_KEYS.FLASH, true);
-    updateNotificationToggle();
-  }
-
-  function updateNotificationToggle() {
-    const icon = elements.notificationToggle.querySelector('.toggle-icon');
-    icon.textContent = state.notificationsEnabled ? '🔔' : '🔕';
-    elements.notificationToggle.classList.toggle('active', state.notificationsEnabled);
+    state.notificationsEnabled = load(STORAGE_KEYS.NOTIFICATIONS, false);
+    state.flashEnabled = load(STORAGE_KEYS.FLASH, true);
   }
 
   async function toggleNotifications() {
     if (!state.notificationsEnabled) {
-      // Try to enable
       if (!('Notification' in window)) {
-        showToast('Notifications not supported', 'error');
+        showToast('Not supported');
         return;
       }
-
       if (Notification.permission === 'denied') {
-        showToast('Notifications blocked. Enable in browser settings.', 'error');
+        showToast('Blocked in browser');
         return;
       }
-
       if (Notification.permission === 'default') {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-          showToast('Notification permission denied', 'warning');
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') {
+          showToast('Permission denied');
           return;
         }
       }
-
       state.notificationsEnabled = true;
     } else {
       state.notificationsEnabled = false;
     }
-
-    saveToStorage(STORAGE_KEYS.NOTIFICATIONS, state.notificationsEnabled);
-    updateNotificationToggle();
-    playSound('click');
-    showToast(state.notificationsEnabled ? 'Notifications enabled' : 'Notifications disabled');
+    save(STORAGE_KEYS.NOTIFICATIONS, state.notificationsEnabled);
+    showToast(state.notificationsEnabled ? 'Notifications on' : 'Notifications off');
   }
 
   function sendNotification(title, body) {
-    if (!state.notificationsEnabled || Notification.permission !== 'granted') {
-      return;
-    }
-
-    try {
-      new Notification(title, {
-        body,
-        icon: '🍅',
-        badge: '🍅',
-        tag: 'pomodoro-timer'
-      });
-    } catch (e) {
-      console.error('Failed to send notification:', e);
+    if (state.notificationsEnabled && Notification.permission === 'granted') {
+      try { new Notification(title, { body, tag: 'pomodoro' }); } catch {}
     }
   }
 
-  function showScreenFlash(type) {
+  function showFlash(type) {
     if (!state.flashEnabled) return;
-
     const flash = document.createElement('div');
     flash.className = `screen-flash ${type}`;
     document.body.appendChild(flash);
-
-    setTimeout(() => {
-      flash.remove();
-    }, 500);
+    setTimeout(() => flash.remove(), 400);
   }
 
   // ==========================================================================
-  // Timer System
+  // Timer
   // ==========================================================================
   function initTimer() {
-    state.durations = loadFromStorage(STORAGE_KEYS.DURATIONS, DEFAULT_DURATIONS);
+    state.durations = load(STORAGE_KEYS.DURATIONS, DEFAULT_DURATIONS);
     resetTimerDisplay();
     updateTimerDisplay();
     updateSessionCalendar();
   }
 
+  function getDuration(type) {
+    const map = {
+      [SESSION_TYPES.WORK]: state.durations.work,
+      [SESSION_TYPES.SHORT_BREAK]: state.durations.shortBreak,
+      [SESSION_TYPES.LONG_BREAK]: state.durations.longBreak
+    };
+    return map[type] || state.durations.work;
+  }
+
   function resetTimerDisplay() {
-    const duration = getDurationForType(state.sessionType);
-    state.totalDuration = duration * 60 * 1000;
+    const dur = getDuration(state.sessionType);
+    state.totalDuration = dur * 60 * 1000;
     state.remainingTime = state.totalDuration;
   }
 
-  function getDurationForType(type) {
-    switch (type) {
-      case SESSION_TYPES.WORK:
-        return state.durations.work;
-      case SESSION_TYPES.SHORT_BREAK:
-        return state.durations.shortBreak;
-      case SESSION_TYPES.LONG_BREAK:
-        return state.durations.longBreak;
-      default:
-        return state.durations.work;
-    }
-  }
-
   function formatTime(ms) {
-    const totalSeconds = Math.ceil(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    const secs = Math.ceil(ms / 1000);
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   }
 
   function updateTimerDisplay() {
-    elements.timerTime.textContent = formatTime(state.remainingTime);
+    el.timerTime.textContent = formatTime(state.remainingTime);
 
     const labels = {
       [SESSION_TYPES.WORK]: 'Work',
       [SESSION_TYPES.SHORT_BREAK]: 'Short Break',
       [SESSION_TYPES.LONG_BREAK]: 'Long Break'
     };
-    elements.timerLabel.textContent = labels[state.sessionType];
-    elements.timerSession.textContent = `Session ${state.sessionCount}/4`;
+    el.timerLabel.textContent = labels[state.sessionType];
+    el.timerSession.textContent = `Session ${state.sessionCount} of 4`;
 
-    // Update progress ring
     const progress = 1 - (state.remainingTime / state.totalDuration);
-    const offset = PROGRESS_RING_CIRCUMFERENCE * (1 - progress);
-    elements.progressRing.style.strokeDashoffset = offset;
+    el.progressRing.style.strokeDashoffset = PROGRESS_CIRCUMFERENCE * (1 - progress);
+    el.timerContainer.setAttribute('data-type', state.sessionType);
 
-    // Update container data type for color
-    elements.timerContainer.setAttribute('data-type', state.sessionType);
-
-    // Pulsing effect for last 10 seconds
-    if (state.remainingTime <= 10000 && state.isRunning) {
-      elements.timerTime.classList.add('pulsing');
-    } else {
-      elements.timerTime.classList.remove('pulsing');
-    }
+    el.timerTime.classList.toggle('pulsing', state.remainingTime <= 10000 && state.isRunning);
   }
 
   function updateSessionCalendar() {
-    elements.sessionDots.forEach((dot, index) => {
-      const sessionNum = index + 1;
+    el.sessionDots.forEach((dot, i) => {
+      const num = i + 1;
       dot.classList.remove('completed', 'current', 'break');
 
       if (state.sessionType === SESSION_TYPES.WORK) {
-        if (sessionNum < state.sessionCount) {
-          dot.classList.add('completed');
-        } else if (sessionNum === state.sessionCount) {
-          dot.classList.add('current');
-        }
+        if (num < state.sessionCount) dot.classList.add('completed');
+        else if (num === state.sessionCount) dot.classList.add('current');
       } else {
-        // During break, show previous work sessions as completed
-        if (sessionNum <= state.sessionCount - 1) {
-          dot.classList.add('completed');
-        } else if (sessionNum === state.sessionCount) {
-          dot.classList.add('break');
-        }
+        if (num <= state.sessionCount - 1) dot.classList.add('completed');
+        else if (num === state.sessionCount) dot.classList.add('break');
       }
     });
   }
@@ -532,41 +372,31 @@
       return;
     }
 
-    // Initialize audio context on first interaction
-    createAudioContext();
-
+    getAudioContext();
     state.isRunning = true;
     state.isPaused = false;
 
     if (state.pausedTime) {
-      // Resuming from pause
       state.startTime = performance.now() - (state.totalDuration - state.remainingTime);
     } else {
-      // Fresh start
       state.startTime = performance.now();
       playSound('start');
-      showToast(`${state.sessionType === SESSION_TYPES.WORK ? 'Work' : 'Break'} session started`);
+      showToast(`${state.sessionType === SESSION_TYPES.WORK ? 'Work' : 'Break'} started`);
     }
 
     state.pausedTime = null;
-    elements.startBtn.textContent = 'Pause';
+    el.startBtn.textContent = 'Pause';
 
-    // Use requestAnimationFrame for smooth updates
-    let lastTickTime = 0;
-
-    function tick(currentTime) {
+    function tick(now) {
       if (!state.isRunning) return;
 
-      const elapsed = currentTime - state.startTime;
+      const elapsed = now - state.startTime;
       state.remainingTime = Math.max(0, state.totalDuration - elapsed);
 
-      // Play tick sound in last 10 seconds
       if (state.remainingTime <= 10000 && state.remainingTime > 0) {
-        const currentSecond = Math.ceil(state.remainingTime / 1000);
-        const lastSecond = Math.ceil((state.remainingTime + 100) / 1000);
-        if (currentSecond !== lastSecond && currentSecond <= 10) {
-          playSound('tick');
-        }
+        const curr = Math.ceil(state.remainingTime / 1000);
+        const last = Math.ceil((state.remainingTime + 100) / 1000);
+        if (curr !== last && curr <= 10) playSound('tick');
       }
 
       updateTimerDisplay();
@@ -584,43 +414,31 @@
 
   function pauseTimer() {
     if (!state.isRunning) return;
-
     state.isRunning = false;
     state.isPaused = true;
     state.pausedTime = performance.now();
-
-    if (state.timerInterval) {
-      cancelAnimationFrame(state.timerInterval);
-    }
-
-    elements.startBtn.textContent = 'Resume';
+    cancelAnimationFrame(state.timerInterval);
+    el.startBtn.textContent = 'Resume';
     playSound('pause');
-    showToast('Timer paused');
+    showToast('Paused');
   }
 
   function resetTimer() {
-    const wasRunning = state.isRunning;
-
     state.isRunning = false;
     state.isPaused = false;
     state.pausedTime = null;
-
-    if (state.timerInterval) {
-      cancelAnimationFrame(state.timerInterval);
-    }
-
+    cancelAnimationFrame(state.timerInterval);
     resetTimerDisplay();
     updateTimerDisplay();
-    elements.startBtn.textContent = 'Start';
-
+    el.startBtn.textContent = 'Start';
     playSound('click');
-    showToast('Session reset');
+    showToast('Reset');
   }
 
   function skipSession() {
     playSound('skip');
     moveToNextSession();
-    showToast('Skipped to next session');
+    showToast('Skipped');
   }
 
   function stopTimer() {
@@ -629,54 +447,34 @@
     state.pausedTime = null;
     state.sessionType = SESSION_TYPES.WORK;
     state.sessionCount = 1;
-
-    if (state.timerInterval) {
-      cancelAnimationFrame(state.timerInterval);
-    }
-
+    cancelAnimationFrame(state.timerInterval);
     resetTimerDisplay();
     updateTimerDisplay();
     updateSessionCalendar();
-    elements.startBtn.textContent = 'Start';
-
+    el.startBtn.textContent = 'Start';
     playSound('click');
-    showToast('Timer stopped');
+    showToast('Stopped');
   }
 
   function completeSession() {
     state.isRunning = false;
-
-    if (state.timerInterval) {
-      cancelAnimationFrame(state.timerInterval);
-    }
-
-    // Record session
+    cancelAnimationFrame(state.timerInterval);
     recordSession();
-
-    // Play completion sound and show notifications
     playSound('complete');
-    showScreenFlash(state.sessionType === SESSION_TYPES.WORK ? 'work' : 'break');
+    showFlash(state.sessionType === SESSION_TYPES.WORK ? 'work' : 'break');
 
-    const isWorkSession = state.sessionType === SESSION_TYPES.WORK;
-    const message = isWorkSession ? 'Work session complete! Time for a break.' : 'Break is over! Ready to work?';
+    const isWork = state.sessionType === SESSION_TYPES.WORK;
+    const msg = isWork ? 'Work done! Break time.' : 'Break over!';
+    sendNotification('Pomodoro', msg);
+    showToast(msg);
 
-    sendNotification('Pomodoro Timer', message);
-    showToast(message, 'success');
-
-    // Move to next session
     moveToNextSession();
 
-    // Auto-start breaks
-    if (!isWorkSession || state.sessionType !== SESSION_TYPES.WORK) {
-      // It's now a break, auto-start it
-      if (state.sessionType !== SESSION_TYPES.WORK) {
-        setTimeout(() => {
-          startTimer();
-        }, 1000);
-      }
+    if (state.sessionType !== SESSION_TYPES.WORK) {
+      setTimeout(startTimer, 1000);
     }
 
-    elements.startBtn.textContent = 'Start';
+    el.startBtn.textContent = 'Start';
     updateStats();
   }
 
@@ -684,24 +482,12 @@
     state.isRunning = false;
     state.isPaused = false;
     state.pausedTime = null;
-
-    if (state.timerInterval) {
-      cancelAnimationFrame(state.timerInterval);
-    }
+    cancelAnimationFrame(state.timerInterval);
 
     if (state.sessionType === SESSION_TYPES.WORK) {
-      // Work session completed
-      if (state.sessionCount >= 4) {
-        // Long break after 4 sessions
-        state.sessionType = SESSION_TYPES.LONG_BREAK;
-      } else {
-        // Short break
-        state.sessionType = SESSION_TYPES.SHORT_BREAK;
-      }
+      state.sessionType = state.sessionCount >= 4 ? SESSION_TYPES.LONG_BREAK : SESSION_TYPES.SHORT_BREAK;
     } else {
-      // Break completed, move to next work session
       if (state.sessionType === SESSION_TYPES.LONG_BREAK) {
-        // Reset cycle after long break
         state.sessionCount = 1;
       } else {
         state.sessionCount++;
@@ -712,28 +498,24 @@
     resetTimerDisplay();
     updateTimerDisplay();
     updateSessionCalendar();
-    elements.startBtn.textContent = 'Start';
+    el.startBtn.textContent = 'Start';
   }
 
-  // Handle visibility change for timer accuracy
   function handleVisibilityChange() {
     if (document.hidden && state.isRunning) {
-      // Page is hidden, store the time
       state.hiddenTime = performance.now();
     } else if (!document.hidden && state.isRunning && state.hiddenTime) {
-      // Page is visible again, adjust the start time
-      const hiddenDuration = performance.now() - state.hiddenTime;
-      state.startTime += hiddenDuration;
+      state.startTime += performance.now() - state.hiddenTime;
       state.hiddenTime = null;
     }
   }
 
   // ==========================================================================
-  // Task Management
+  // Tasks
   // ==========================================================================
   function initTasks() {
-    state.tasks = loadFromStorage(STORAGE_KEYS.TASKS, []);
-    state.activeTaskId = loadFromStorage(STORAGE_KEYS.ACTIVE_TASK, null);
+    state.tasks = load(STORAGE_KEYS.TASKS, []);
+    state.activeTaskId = load(STORAGE_KEYS.ACTIVE_TASK, null);
     renderTasks();
   }
 
@@ -742,26 +524,20 @@
   }
 
   function addTask(text) {
-    const trimmedText = text.trim();
-    if (!trimmedText) {
-      showToast('Please enter a task name', 'warning');
+    const trimmed = text.trim();
+    if (!trimmed || trimmed.length > 100) {
+      showToast(trimmed ? 'Too long' : 'Enter a task');
       return false;
     }
 
-    if (trimmedText.length > 100) {
-      showToast('Task name too long (max 100 characters)', 'warning');
-      return false;
-    }
-
-    const task = {
+    state.tasks.unshift({
       id: generateId(),
-      text: trimmedText,
+      text: trimmed,
       completed: false,
       sessionsSpent: 0,
       createdAt: new Date().toISOString()
-    };
+    });
 
-    state.tasks.unshift(task);
     saveTasks();
     renderTasks();
     playSound('check');
@@ -769,10 +545,9 @@
     return true;
   }
 
-  function toggleTaskComplete(taskId) {
-    const task = state.tasks.find(t => t.id === taskId);
+  function toggleTaskComplete(id) {
+    const task = state.tasks.find(t => t.id === id);
     if (!task) return;
-
     task.completed = !task.completed;
     saveTasks();
     renderTasks();
@@ -780,170 +555,138 @@
     playSound(task.completed ? 'check' : 'uncheck');
   }
 
-  function editTask(taskId, newText) {
-    const trimmedText = newText.trim();
-    if (!trimmedText) {
-      showToast('Task name cannot be empty', 'warning');
+  function editTask(id, newText) {
+    const trimmed = newText.trim();
+    if (!trimmed || trimmed.length > 100) {
+      showToast(trimmed ? 'Too long' : 'Cannot be empty');
       return false;
     }
-
-    if (trimmedText.length > 100) {
-      showToast('Task name too long', 'warning');
-      return false;
-    }
-
-    const task = state.tasks.find(t => t.id === taskId);
+    const task = state.tasks.find(t => t.id === id);
     if (task) {
-      task.text = trimmedText;
+      task.text = trimmed;
       saveTasks();
       renderTasks();
-      showToast('Task updated');
+      showToast('Updated');
     }
     return true;
   }
 
-  function deleteTask(taskId) {
-    const index = state.tasks.findIndex(t => t.id === taskId);
-    if (index > -1) {
-      state.tasks.splice(index, 1);
-      if (state.activeTaskId === taskId) {
+  function deleteTask(id) {
+    const idx = state.tasks.findIndex(t => t.id === id);
+    if (idx > -1) {
+      state.tasks.splice(idx, 1);
+      if (state.activeTaskId === id) {
         state.activeTaskId = null;
-        saveToStorage(STORAGE_KEYS.ACTIVE_TASK, null);
+        save(STORAGE_KEYS.ACTIVE_TASK, null);
       }
       saveTasks();
       renderTasks();
       updateStats();
       playSound('delete');
-      showToast('Task deleted');
+      showToast('Deleted');
     }
   }
 
-  function selectTask(taskId) {
+  function selectTask(id) {
     if (state.isRunning) {
-      showToast('Cannot change task while timer is running', 'warning');
+      showToast('Stop timer first');
       return;
     }
-
-    state.activeTaskId = state.activeTaskId === taskId ? null : taskId;
-    saveToStorage(STORAGE_KEYS.ACTIVE_TASK, state.activeTaskId);
+    state.activeTaskId = state.activeTaskId === id ? null : id;
+    save(STORAGE_KEYS.ACTIVE_TASK, state.activeTaskId);
     renderTasks();
-
-    if (state.activeTaskId) {
-      const task = state.tasks.find(t => t.id === taskId);
-      showToast(`Selected: ${task.text.substring(0, 30)}${task.text.length > 30 ? '...' : ''}`);
-    }
   }
 
   function saveTasks() {
-    saveToStorage(STORAGE_KEYS.TASKS, state.tasks);
+    save(STORAGE_KEYS.TASKS, state.tasks);
   }
 
   function renderTasks() {
-    const taskList = elements.taskList;
-    taskList.innerHTML = '';
+    el.taskList.innerHTML = '';
+    el.taskCount.textContent = state.tasks.length;
 
     if (state.tasks.length === 0) {
-      taskList.innerHTML = '<li class="task-empty">No tasks yet. Add one above!</li>';
+      el.taskList.innerHTML = '<li class="empty-state">No tasks yet</li>';
+      updateMobileTaskList();
       return;
     }
 
-    state.tasks.forEach((task, index) => {
+    state.tasks.forEach((task, idx) => {
       const li = document.createElement('li');
-      li.className = `task-item ${task.completed ? 'completed' : ''} ${task.id === state.activeTaskId ? 'active' : ''}`;
-      li.setAttribute('data-task-id', task.id);
-      li.setAttribute('role', 'listitem');
+      li.className = `task-item${task.completed ? ' completed' : ''}${task.id === state.activeTaskId ? ' active' : ''}`;
+      li.dataset.taskId = task.id;
 
       li.innerHTML = `
-        <button class="task-checkbox ${task.completed ? 'checked' : ''}"
-                aria-label="${task.completed ? 'Mark incomplete' : 'Mark complete'}"
-                data-action="toggle"></button>
+        <button class="task-checkbox${task.completed ? ' checked' : ''}" data-action="toggle" aria-label="Toggle complete"></button>
         <span class="task-text" data-action="select">${escapeHtml(task.text)}</span>
-        ${task.sessionsSpent > 0 ? `<span class="task-sessions">${task.sessionsSpent} 🍅</span>` : ''}
+        ${task.sessionsSpent > 0 ? `<span class="task-sessions">${task.sessionsSpent}</span>` : ''}
         <div class="task-actions">
-          <button class="task-action-btn" aria-label="Edit task" data-action="edit" title="Edit">✏️</button>
-          <button class="task-action-btn delete" aria-label="Delete task" data-action="delete" title="Delete">🗑️</button>
+          <button class="task-action-btn" data-action="edit" aria-label="Edit">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button class="task-action-btn delete" data-action="delete" aria-label="Delete">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+          </button>
         </div>
       `;
 
-      // Event delegation
       li.addEventListener('click', (e) => {
         const action = e.target.closest('[data-action]')?.dataset.action;
-        const taskId = li.dataset.taskId;
-
-        switch (action) {
-          case 'toggle':
-            toggleTaskComplete(taskId);
-            break;
-          case 'select':
-            selectTask(taskId);
-            break;
-          case 'edit':
-            startEditTask(li, task);
-            break;
-          case 'delete':
-            deleteTask(taskId);
-            break;
-        }
+        if (action === 'toggle') toggleTaskComplete(task.id);
+        else if (action === 'select') selectTask(task.id);
+        else if (action === 'edit') startEditTask(li, task);
+        else if (action === 'delete') deleteTask(task.id);
       });
 
-      // Double-click to edit
       li.addEventListener('dblclick', (e) => {
-        if (e.target.classList.contains('task-text')) {
-          startEditTask(li, task);
-        }
+        if (e.target.classList.contains('task-text')) startEditTask(li, task);
       });
 
-      taskList.appendChild(li);
+      el.taskList.appendChild(li);
     });
 
-    // Update mobile bottom sheet
     updateMobileTaskList();
   }
 
   function startEditTask(li, task) {
     const textSpan = li.querySelector('.task-text');
-    const originalText = task.text;
-
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'task-edit-input';
-    input.value = originalText;
+    input.value = task.text;
     input.maxLength = 100;
-
     textSpan.replaceWith(input);
     input.focus();
     input.select();
 
-    function saveEdit() {
-      const newText = input.value.trim();
-      if (newText && newText !== originalText) {
-        editTask(task.id, newText);
+    const save = () => {
+      if (input.value.trim() && input.value !== task.text) {
+        editTask(task.id, input.value);
       } else {
         renderTasks();
       }
-    }
+    };
 
-    function cancelEdit() {
-      renderTasks();
-    }
-
-    input.addEventListener('blur', saveEdit);
+    input.addEventListener('blur', save);
     input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        input.blur();
-      } else if (e.key === 'Escape') {
-        input.removeEventListener('blur', saveEdit);
-        cancelEdit();
+      if (e.key === 'Enter') input.blur();
+      else if (e.key === 'Escape') {
+        input.removeEventListener('blur', save);
+        renderTasks();
       }
     });
   }
 
   // ==========================================================================
-  // Session History
+  // Sessions
   // ==========================================================================
   function initSessions() {
-    state.sessions = loadFromStorage(STORAGE_KEYS.SESSIONS, []);
+    state.sessions = load(STORAGE_KEYS.SESSIONS, []);
     renderHistory();
     updateStats();
   }
@@ -954,7 +697,7 @@
       date: new Date().toISOString().split('T')[0],
       startTime: new Date(Date.now() - state.totalDuration).toISOString(),
       endTime: new Date().toISOString(),
-      duration: state.totalDuration / 1000 / 60, // minutes
+      duration: state.totalDuration / 60000,
       type: state.sessionType,
       taskId: state.sessionType === SESSION_TYPES.WORK ? state.activeTaskId : null,
       taskName: state.sessionType === SESSION_TYPES.WORK && state.activeTaskId
@@ -963,9 +706,8 @@
     };
 
     state.sessions.unshift(session);
-    saveToStorage(STORAGE_KEYS.SESSIONS, state.sessions);
+    save(STORAGE_KEYS.SESSIONS, state.sessions);
 
-    // Update task session count
     if (session.taskId && session.type === SESSION_TYPES.WORK) {
       const task = state.tasks.find(t => t.id === session.taskId);
       if (task) {
@@ -979,252 +721,198 @@
   }
 
   function renderHistory() {
-    const historyList = elements.historyList;
-    historyList.innerHTML = '';
+    el.historyList.innerHTML = '';
 
     if (state.sessions.length === 0) {
-      elements.historyEmpty.style.display = 'block';
+      el.historyEmpty.style.display = 'block';
       return;
     }
 
-    elements.historyEmpty.style.display = 'none';
+    el.historyEmpty.style.display = 'none';
 
-    // Group sessions by date
-    const groupedSessions = {};
-    state.sessions.forEach(session => {
-      if (!groupedSessions[session.date]) {
-        groupedSessions[session.date] = [];
-      }
-      groupedSessions[session.date].push(session);
+    const grouped = {};
+    state.sessions.forEach(s => {
+      if (!grouped[s.date]) grouped[s.date] = [];
+      grouped[s.date].push(s);
     });
 
-    // Render groups
-    Object.keys(groupedSessions).forEach(date => {
-      const dateGroup = document.createElement('div');
-      dateGroup.className = 'history-date-group';
+    Object.keys(grouped).forEach(date => {
+      const group = document.createElement('div');
+      group.className = 'history-date-group';
+      group.innerHTML = `<div class="history-date">${formatDateLabel(date)}</div>`;
 
-      const dateLabel = formatDateLabel(date);
-      dateGroup.innerHTML = `<div class="history-date">${dateLabel}</div>`;
-
-      groupedSessions[date].forEach(session => {
+      grouped[date].forEach(s => {
         const item = document.createElement('li');
         item.className = 'history-item';
-
-        const time = new Date(session.endTime).toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-
-        const typeClass = session.type === SESSION_TYPES.WORK ? 'work' : 'break';
-        const typeName = session.type === SESSION_TYPES.WORK
-          ? 'Work'
-          : session.type === SESSION_TYPES.SHORT_BREAK
-            ? 'Short Break'
-            : 'Long Break';
+        const time = new Date(s.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const typeClass = s.type === SESSION_TYPES.WORK ? 'work' : 'break';
+        const typeName = s.type === SESSION_TYPES.WORK ? 'Work' : 'Break';
 
         item.innerHTML = `
           <div class="history-type ${typeClass}"></div>
           <span class="history-time">${time}</span>
-          <span class="history-duration">${Math.round(session.duration)}min ${typeName}</span>
-          ${session.taskName ? `<span class="history-task">- ${escapeHtml(session.taskName)}</span>` : ''}
+          <span class="history-duration">${Math.round(s.duration)}m ${typeName}</span>
+          ${s.taskName ? `<span class="history-task">${escapeHtml(s.taskName)}</span>` : ''}
         `;
-
-        dateGroup.appendChild(item);
+        group.appendChild(item);
       });
 
-      historyList.appendChild(dateGroup);
+      el.historyList.appendChild(group);
     });
   }
 
   function formatDateLabel(dateStr) {
     const date = new Date(dateStr);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-    if (dateStr === today.toISOString().split('T')[0]) {
-      return 'Today';
-    } else if (dateStr === yesterday.toISOString().split('T')[0]) {
-      return 'Yesterday';
-    } else {
-      return date.toLocaleDateString(undefined, {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric'
-      });
-    }
+    if (dateStr === today) return 'Today';
+    if (dateStr === yesterday) return 'Yesterday';
+    return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
   function toggleHistory() {
-    const isExpanded = elements.historyToggle.getAttribute('aria-expanded') === 'true';
-    elements.historyToggle.setAttribute('aria-expanded', !isExpanded);
-    elements.historyContent.classList.toggle('collapsed', isExpanded);
+    const expanded = el.historyToggle.getAttribute('aria-expanded') === 'true';
+    el.historyToggle.setAttribute('aria-expanded', !expanded);
+    el.historyContent.classList.toggle('collapsed', expanded);
+  }
+
+  function clearHistory() {
+    if (confirm('Clear all session history?')) {
+      state.sessions = [];
+      save(STORAGE_KEYS.SESSIONS, []);
+      renderHistory();
+      updateStats();
+      showToast('History cleared');
+    }
   }
 
   // ==========================================================================
-  // Statistics
+  // Stats
   // ==========================================================================
   function updateStats() {
     const today = new Date().toISOString().split('T')[0];
+    const workSessions = state.sessions.filter(s => s.type === SESSION_TYPES.WORK);
 
-    // Sessions today
-    const sessionsToday = state.sessions.filter(
-      s => s.date === today && s.type === SESSION_TYPES.WORK
-    ).length;
-    elements.statSessionsToday.textContent = sessionsToday;
+    const todaySessions = workSessions.filter(s => s.date === today);
+    el.statSessionsToday.textContent = todaySessions.length;
 
-    // Focus time today (minutes)
-    const focusToday = state.sessions
-      .filter(s => s.date === today && s.type === SESSION_TYPES.WORK)
-      .reduce((sum, s) => sum + s.duration, 0);
-    elements.statFocusToday.textContent = `${Math.round(focusToday)}m`;
+    const focusToday = todaySessions.reduce((sum, s) => sum + s.duration, 0);
+    el.statFocusToday.textContent = `${Math.round(focusToday)}m`;
 
-    // Total sessions
-    const totalSessions = state.sessions.filter(s => s.type === SESSION_TYPES.WORK).length;
-    elements.statSessionsTotal.textContent = totalSessions;
-
-    // Total focus time
-    const totalFocus = state.sessions
-      .filter(s => s.type === SESSION_TYPES.WORK)
-      .reduce((sum, s) => sum + s.duration, 0);
-    const totalHours = totalFocus / 60;
-    elements.statFocusTotal.textContent = totalHours >= 1
-      ? `${totalHours.toFixed(1)}h`
-      : `${Math.round(totalFocus)}m`;
-
-    // Streak
-    const streak = calculateStreak();
-    elements.statStreak.textContent = streak;
-
-    // Tasks completed
-    const tasksCompleted = state.tasks.filter(t => t.completed).length;
-    elements.statTasksCompleted.textContent = tasksCompleted;
+    el.statSessionsTotal.textContent = workSessions.length;
+    el.statStreak.textContent = calculateStreak();
   }
 
   function calculateStreak() {
     const workSessions = state.sessions.filter(s => s.type === SESSION_TYPES.WORK);
     if (workSessions.length === 0) return 0;
 
-    // Get unique dates with sessions
-    const datesWithSessions = [...new Set(workSessions.map(s => s.date))].sort().reverse();
-
-    if (datesWithSessions.length === 0) return 0;
+    const dates = [...new Set(workSessions.map(s => s.date))].sort().reverse();
+    if (dates.length === 0) return 0;
 
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-    // Check if streak is still active (session today or yesterday)
-    if (datesWithSessions[0] !== today && datesWithSessions[0] !== yesterday) {
-      return 0;
-    }
+    if (dates[0] !== today && dates[0] !== yesterday) return 0;
 
     let streak = 1;
-    let currentDate = new Date(datesWithSessions[0]);
+    let current = new Date(dates[0]);
 
-    for (let i = 1; i < datesWithSessions.length; i++) {
-      const prevDate = new Date(currentDate);
-      prevDate.setDate(prevDate.getDate() - 1);
-
-      if (datesWithSessions[i] === prevDate.toISOString().split('T')[0]) {
+    for (let i = 1; i < dates.length; i++) {
+      const prev = new Date(current);
+      prev.setDate(prev.getDate() - 1);
+      if (dates[i] === prev.toISOString().split('T')[0]) {
         streak++;
-        currentDate = prevDate;
-      } else {
-        break;
-      }
+        current = prev;
+      } else break;
     }
 
     return streak;
   }
 
   // ==========================================================================
-  // Customization Modal
+  // Settings Modal
   // ==========================================================================
-  function openCustomizeModal() {
-    elements.workDuration.value = state.durations.work;
-    elements.shortBreakDuration.value = state.durations.shortBreak;
-    elements.longBreakDuration.value = state.durations.longBreak;
-    elements.settingSound.checked = state.soundEnabled;
-    elements.settingNotifications.checked = state.notificationsEnabled;
-    elements.settingFlash.checked = state.flashEnabled;
+  function openSettings() {
+    el.workDuration.value = state.durations.work;
+    el.shortBreakDuration.value = state.durations.shortBreak;
+    el.longBreakDuration.value = state.durations.longBreak;
 
-    showModal(elements.customizeModal);
+    el.settingSound.setAttribute('aria-checked', state.soundEnabled);
+    el.settingNotifications.setAttribute('aria-checked', state.notificationsEnabled);
+    el.settingFlash.setAttribute('aria-checked', state.flashEnabled);
+
+    showModal(el.customizeModal);
     playSound('click');
   }
 
-  function closeCustomizeModal() {
-    hideModal(elements.customizeModal);
+  function closeSettings() {
+    hideModal(el.customizeModal);
   }
 
-  function saveCustomization() {
-    const work = parseInt(elements.workDuration.value);
-    const shortBreak = parseInt(elements.shortBreakDuration.value);
-    const longBreak = parseInt(elements.longBreakDuration.value);
+  function saveSettings() {
+    const work = parseInt(el.workDuration.value);
+    const shortBreak = parseInt(el.shortBreakDuration.value);
+    const longBreak = parseInt(el.longBreakDuration.value);
 
-    // Validate
-    if (isNaN(work) || work < 1 || work > 60) {
-      showToast('Work duration must be 1-60 minutes', 'error');
-      return;
-    }
-    if (isNaN(shortBreak) || shortBreak < 1 || shortBreak > 60) {
-      showToast('Short break must be 1-60 minutes', 'error');
-      return;
-    }
-    if (isNaN(longBreak) || longBreak < 1 || longBreak > 60) {
-      showToast('Long break must be 1-60 minutes', 'error');
+    if ([work, shortBreak, longBreak].some(v => isNaN(v) || v < 1 || v > 60)) {
+      showToast('Invalid duration (1-60)');
       return;
     }
 
     state.durations = { work, shortBreak, longBreak };
-    saveToStorage(STORAGE_KEYS.DURATIONS, state.durations);
+    save(STORAGE_KEYS.DURATIONS, state.durations);
 
-    // Update settings
-    state.soundEnabled = elements.settingSound.checked;
-    state.notificationsEnabled = elements.settingNotifications.checked;
-    state.flashEnabled = elements.settingFlash.checked;
+    state.soundEnabled = el.settingSound.getAttribute('aria-checked') === 'true';
+    state.notificationsEnabled = el.settingNotifications.getAttribute('aria-checked') === 'true';
+    state.flashEnabled = el.settingFlash.getAttribute('aria-checked') === 'true';
 
-    saveToStorage(STORAGE_KEYS.SOUND, state.soundEnabled);
-    saveToStorage(STORAGE_KEYS.NOTIFICATIONS, state.notificationsEnabled);
-    saveToStorage(STORAGE_KEYS.FLASH, state.flashEnabled);
+    save(STORAGE_KEYS.SOUND, state.soundEnabled);
+    save(STORAGE_KEYS.NOTIFICATIONS, state.notificationsEnabled);
+    save(STORAGE_KEYS.FLASH, state.flashEnabled);
 
-    updateSoundToggle();
-    updateNotificationToggle();
+    updateSoundIcon();
 
-    // Update timer if not running
     if (!state.isRunning) {
       resetTimerDisplay();
       updateTimerDisplay();
     }
 
-    closeCustomizeModal();
+    closeSettings();
     playSound('check');
-    showToast('Settings saved');
+    showToast('Saved');
   }
 
-  function resetCustomization() {
-    elements.workDuration.value = DEFAULT_DURATIONS.work;
-    elements.shortBreakDuration.value = DEFAULT_DURATIONS.shortBreak;
-    elements.longBreakDuration.value = DEFAULT_DURATIONS.longBreak;
+  function resetSettings() {
+    el.workDuration.value = DEFAULT_DURATIONS.work;
+    el.shortBreakDuration.value = DEFAULT_DURATIONS.shortBreak;
+    el.longBreakDuration.value = DEFAULT_DURATIONS.longBreak;
     showToast('Reset to defaults');
+  }
+
+  function toggleSettingSwitch(btn) {
+    const current = btn.getAttribute('aria-checked') === 'true';
+    btn.setAttribute('aria-checked', !current);
   }
 
   // ==========================================================================
   // Help Modal
   // ==========================================================================
-  function openHelpModal() {
-    showModal(elements.helpModal);
+  function openHelp() {
+    showModal(el.helpModal);
     playSound('click');
   }
 
-  function closeHelpModal() {
-    hideModal(elements.helpModal);
+  function closeHelp() {
+    hideModal(el.helpModal);
   }
 
   // ==========================================================================
-  // Modal Utilities
+  // Modal Utils
   // ==========================================================================
   function showModal(modal) {
     modal.hidden = false;
-    // Trigger reflow for animation
     modal.offsetHeight;
     modal.classList.add('visible');
     document.body.style.overflow = 'hidden';
@@ -1239,127 +927,103 @@
   }
 
   function closeAllModals() {
-    [elements.customizeModal, elements.helpModal].forEach(modal => {
-      if (!modal.hidden) {
-        hideModal(modal);
-      }
+    [el.customizeModal, el.helpModal].forEach(m => {
+      if (!m.hidden) hideModal(m);
     });
   }
 
   // ==========================================================================
-  // Toast Notifications
+  // Toast
   // ==========================================================================
-  function showToast(message, type = 'default') {
+  function showToast(message) {
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
+    toast.className = 'toast';
     toast.textContent = message;
-    toast.setAttribute('role', 'status');
-
-    elements.toastContainer.appendChild(toast);
-
-    // Auto dismiss
+    el.toastContainer.appendChild(toast);
     setTimeout(() => {
       toast.classList.add('toast-out');
-      setTimeout(() => {
-        toast.remove();
-      }, 300);
-    }, 3000);
+      setTimeout(() => toast.remove(), 200);
+    }, 2500);
   }
 
   // ==========================================================================
-  // Mobile Support
+  // Mobile
   // ==========================================================================
   function initMobile() {
-    // Bottom sheet
-    elements.mobileTaskBtn.addEventListener('click', openBottomSheet);
-    elements.bottomSheetOverlay.addEventListener('click', closeBottomSheet);
-    elements.bottomSheetClose.addEventListener('click', closeBottomSheet);
+    el.mobileTaskBtn?.addEventListener('click', openBottomSheet);
+    el.bottomSheetOverlay?.addEventListener('click', closeBottomSheet);
+    el.bottomSheetClose?.addEventListener('click', closeBottomSheet);
 
-    // Swipe gestures on timer
-    elements.timerContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
-    elements.timerContainer.addEventListener('touchmove', handleTouchMove, { passive: true });
-    elements.timerContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
+    el.timerContainer?.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.timerContainer?.addEventListener('touchmove', handleTouchMove, { passive: true });
+    el.timerContainer?.addEventListener('touchend', handleTouchEnd, { passive: true });
   }
 
   function openBottomSheet() {
     updateMobileTaskList();
-    elements.bottomSheetOverlay.hidden = false;
-    elements.bottomSheet.hidden = false;
-    // Trigger reflow
-    elements.bottomSheetOverlay.offsetHeight;
-    elements.bottomSheetOverlay.classList.add('visible');
-    elements.bottomSheet.classList.add('visible');
+    el.bottomSheetOverlay.hidden = false;
+    el.bottomSheet.hidden = false;
+    el.bottomSheetOverlay.offsetHeight;
+    el.bottomSheetOverlay.classList.add('visible');
+    el.bottomSheet.classList.add('visible');
     document.body.style.overflow = 'hidden';
   }
 
   function closeBottomSheet() {
-    elements.bottomSheetOverlay.classList.remove('visible');
-    elements.bottomSheet.classList.remove('visible');
+    el.bottomSheetOverlay.classList.remove('visible');
+    el.bottomSheet.classList.remove('visible');
     setTimeout(() => {
-      elements.bottomSheetOverlay.hidden = true;
-      elements.bottomSheet.hidden = true;
+      el.bottomSheetOverlay.hidden = true;
+      el.bottomSheet.hidden = true;
       document.body.style.overflow = '';
     }, 300);
   }
 
   function updateMobileTaskList() {
-    const content = elements.bottomSheetContent;
+    if (!el.bottomSheetContent) return;
 
-    // Clone add form
-    content.innerHTML = `
+    el.bottomSheetContent.innerHTML = `
       <form class="add-task-form" id="mobile-add-task-form">
-        <input type="text" class="task-input" id="mobile-task-input"
-               placeholder="Add a new task..." maxlength="100">
-        <button type="submit" class="add-task-btn">+</button>
+        <input type="text" class="task-input" id="mobile-task-input" placeholder="Add a task..." maxlength="100">
+        <button type="submit" class="add-task-btn">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
       </form>
       <ul class="task-list" id="mobile-task-list"></ul>
     `;
 
-    const mobileForm = content.querySelector('#mobile-add-task-form');
-    const mobileInput = content.querySelector('#mobile-task-input');
-    const mobileList = content.querySelector('#mobile-task-list');
+    const form = el.bottomSheetContent.querySelector('#mobile-add-task-form');
+    const input = el.bottomSheetContent.querySelector('#mobile-task-input');
+    const list = el.bottomSheetContent.querySelector('#mobile-task-list');
 
-    mobileForm.addEventListener('submit', (e) => {
+    form.addEventListener('submit', (e) => {
       e.preventDefault();
-      if (addTask(mobileInput.value)) {
-        mobileInput.value = '';
+      if (addTask(input.value)) {
+        input.value = '';
         updateMobileTaskList();
       }
     });
 
-    // Clone task list content
-    mobileList.innerHTML = elements.taskList.innerHTML;
+    list.innerHTML = el.taskList.innerHTML;
 
-    // Re-attach event listeners
-    mobileList.querySelectorAll('.task-item').forEach(li => {
-      const taskId = li.dataset.taskId;
-      const task = state.tasks.find(t => t.id === taskId);
+    list.querySelectorAll('.task-item').forEach(li => {
+      const id = li.dataset.taskId;
+      const task = state.tasks.find(t => t.id === id);
       if (!task) return;
 
       li.addEventListener('click', (e) => {
         const action = e.target.closest('[data-action]')?.dataset.action;
-
-        switch (action) {
-          case 'toggle':
-            toggleTaskComplete(taskId);
-            updateMobileTaskList();
-            break;
-          case 'select':
-            selectTask(taskId);
-            updateMobileTaskList();
-            break;
-          case 'edit':
-            // Edit in main view
-            closeBottomSheet();
-            setTimeout(() => {
-              const mainLi = elements.taskList.querySelector(`[data-task-id="${taskId}"]`);
-              if (mainLi) startEditTask(mainLi, task);
-            }, 300);
-            break;
-          case 'delete':
-            deleteTask(taskId);
-            updateMobileTaskList();
-            break;
+        if (action === 'toggle') { toggleTaskComplete(id); updateMobileTaskList(); }
+        else if (action === 'select') { selectTask(id); updateMobileTaskList(); }
+        else if (action === 'delete') { deleteTask(id); updateMobileTaskList(); }
+        else if (action === 'edit') {
+          closeBottomSheet();
+          setTimeout(() => {
+            const mainLi = el.taskList.querySelector(`[data-task-id="${id}"]`);
+            if (mainLi) startEditTask(mainLi, task);
+          }, 300);
         }
       });
     });
@@ -1368,139 +1032,81 @@
   function handleTouchStart(e) {
     state.touchStartX = e.touches[0].clientX;
     state.touchStartY = e.touches[0].clientY;
-    state.isSwiping = false;
   }
 
-  function handleTouchMove(e) {
-    if (!state.touchStartX || !state.touchStartY) return;
-
-    const deltaX = e.touches[0].clientX - state.touchStartX;
-    const deltaY = e.touches[0].clientY - state.touchStartY;
-
-    // Only horizontal swipes
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
-      state.isSwiping = true;
-      elements.timerContainer.classList.add('swiping');
-    }
-  }
+  function handleTouchMove() {}
 
   function handleTouchEnd(e) {
-    if (!state.isSwiping || !state.touchStartX) {
-      state.touchStartX = null;
-      state.touchStartY = null;
-      return;
-    }
+    if (!state.touchStartX) return;
+    const dx = e.changedTouches[0].clientX - state.touchStartX;
+    const dy = e.changedTouches[0].clientY - state.touchStartY;
 
-    const deltaX = e.changedTouches[0].clientX - state.touchStartX;
-
-    elements.timerContainer.classList.remove('swiping');
-
-    if (Math.abs(deltaX) > 80) {
-      if (deltaX < 0) {
-        // Swipe left - skip
-        skipSession();
-      } else {
-        // Swipe right - reset
-        resetTimer();
-      }
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 80) {
+      if (dx < 0) skipSession();
+      else resetTimer();
     }
 
     state.touchStartX = null;
     state.touchStartY = null;
-    state.isSwiping = false;
   }
 
   // ==========================================================================
-  // Keyboard Shortcuts
+  // Keyboard
   // ==========================================================================
-  function initKeyboardShortcuts() {
+  function initKeyboard() {
     document.addEventListener('keydown', handleKeyDown);
   }
 
   function handleKeyDown(e) {
-    // Ignore when typing in inputs
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-      if (e.key === 'Escape') {
-        e.target.blur();
-      }
+      if (e.key === 'Escape') e.target.blur();
       return;
     }
 
-    // Check for "help" typed sequence
     if (e.key.length === 1) {
       state.helpTyped += e.key.toLowerCase();
       if (state.helpTyped.endsWith('help')) {
-        openHelpModal();
+        openHelp();
         state.helpTyped = '';
         return;
       }
-      // Keep only last 4 characters
-      if (state.helpTyped.length > 4) {
-        state.helpTyped = state.helpTyped.slice(-4);
-      }
+      if (state.helpTyped.length > 4) state.helpTyped = state.helpTyped.slice(-4);
     }
 
-    // Modal shortcuts
     if (e.key === 'Escape') {
       closeAllModals();
       closeBottomSheet();
       return;
     }
 
-    // Don't process shortcuts when modal is open
-    if (!elements.customizeModal.hidden || !elements.helpModal.hidden) {
-      return;
-    }
+    if (!el.customizeModal.hidden || !el.helpModal.hidden) return;
 
     switch (e.key.toLowerCase()) {
       case ' ':
         e.preventDefault();
         startTimer();
         break;
-      case 'r':
-        resetTimer();
-        break;
-      case 'n':
-        skipSession();
-        break;
-      case 's':
-        stopTimer();
-        break;
+      case 'r': resetTimer(); break;
+      case 'n': skipSession(); break;
+      case 's': stopTimer(); break;
       case 'a':
         e.preventDefault();
-        elements.taskInput.focus();
+        el.taskInput.focus();
         break;
-      case 't':
-        cycleTheme();
-        break;
-      case 'm':
-        toggleSound();
-        break;
-      case 'c':
-        openCustomizeModal();
-        break;
-      case '?':
-        openHelpModal();
-        break;
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-      case '6':
-      case '7':
-      case '8':
-      case '9':
-        const taskIndex = parseInt(e.key) - 1;
-        if (state.tasks[taskIndex]) {
-          toggleTaskComplete(state.tasks[taskIndex].id);
+      case 't': cycleTheme(); break;
+      case 'm': toggleSound(); break;
+      case 'c': openSettings(); break;
+      case '?': openHelp(); break;
+      default:
+        if (/^[1-9]$/.test(e.key)) {
+          const task = state.tasks[parseInt(e.key) - 1];
+          if (task) toggleTaskComplete(task.id);
         }
-        break;
     }
   }
 
   // ==========================================================================
-  // Utilities
+  // Utils
   // ==========================================================================
   function escapeHtml(text) {
     const div = document.createElement('div');
@@ -1509,66 +1115,47 @@
   }
 
   // ==========================================================================
-  // Event Listeners
+  // Events
   // ==========================================================================
-  function initEventListeners() {
-    // Timer controls
-    elements.startBtn.addEventListener('click', startTimer);
-    elements.skipBtn.addEventListener('click', skipSession);
-    elements.resetBtn.addEventListener('click', resetTimer);
-    elements.stopBtn.addEventListener('click', stopTimer);
-    elements.customizeBtn.addEventListener('click', openCustomizeModal);
+  function initEvents() {
+    el.startBtn.addEventListener('click', startTimer);
+    el.skipBtn.addEventListener('click', skipSession);
+    el.resetBtn.addEventListener('click', resetTimer);
+    el.stopBtn.addEventListener('click', stopTimer);
+    el.customizeBtn.addEventListener('click', openSettings);
 
-    // Toggles
-    elements.themeToggle.addEventListener('click', cycleTheme);
-    elements.soundToggle.addEventListener('click', toggleSound);
-    elements.notificationToggle.addEventListener('click', toggleNotifications);
+    el.themeToggle.addEventListener('click', cycleTheme);
+    el.soundToggle.addEventListener('click', toggleSound);
 
-    // Task form
-    elements.taskForm.addEventListener('submit', (e) => {
+    el.taskForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      if (addTask(elements.taskInput.value)) {
-        elements.taskInput.value = '';
-      }
+      if (addTask(el.taskInput.value)) el.taskInput.value = '';
     });
 
-    // History toggle
-    elements.historyToggle.addEventListener('click', toggleHistory);
+    el.historyToggle.addEventListener('click', toggleHistory);
 
-    // Customize modal
-    elements.customizeClose.addEventListener('click', closeCustomizeModal);
-    elements.customizeSave.addEventListener('click', saveCustomization);
-    elements.customizeReset.addEventListener('click', resetCustomization);
-    elements.customizeModal.addEventListener('click', (e) => {
-      if (e.target === elements.customizeModal) {
-        closeCustomizeModal();
-      }
+    el.customizeClose.addEventListener('click', closeSettings);
+    el.customizeSave.addEventListener('click', saveSettings);
+    el.customizeReset.addEventListener('click', resetSettings);
+    el.customizeModal.addEventListener('click', (e) => {
+      if (e.target === el.customizeModal) closeSettings();
     });
 
-    // Help modal
-    elements.helpClose.addEventListener('click', closeHelpModal);
-    elements.helpModal.addEventListener('click', (e) => {
-      if (e.target === elements.helpModal) {
-        closeHelpModal();
-      }
+    el.settingSound.addEventListener('click', () => toggleSettingSwitch(el.settingSound));
+    el.settingNotifications.addEventListener('click', () => toggleSettingSwitch(el.settingNotifications));
+    el.settingFlash.addEventListener('click', () => toggleSettingSwitch(el.settingFlash));
+    el.clearHistoryBtn?.addEventListener('click', clearHistory);
+
+    el.helpClose.addEventListener('click', closeHelp);
+    el.helpModal.addEventListener('click', (e) => {
+      if (e.target === el.helpModal) closeHelp();
     });
 
-    // Visibility change
     document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Prevent zoom on double tap for iOS
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', (e) => {
-      const now = Date.now();
-      if (now - lastTouchEnd <= 300) {
-        e.preventDefault();
-      }
-      lastTouchEnd = now;
-    }, false);
   }
 
   // ==========================================================================
-  // Initialization
+  // Init
   // ==========================================================================
   function init() {
     cacheElements();
@@ -1578,14 +1165,11 @@
     initTimer();
     initTasks();
     initSessions();
-    initEventListeners();
-    initKeyboardShortcuts();
+    initEvents();
+    initKeyboard();
     initMobile();
-
-    console.log('🍅 Pomodoro Timer initialized');
   }
 
-  // Start the app when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
