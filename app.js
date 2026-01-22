@@ -363,6 +363,8 @@
     startTime: null,
     pausedTime: null,
     timerInterval: null,
+    endTime: null,              // Absolute wall-clock time when timer should end (Date.now based)
+    backgroundInterval: null,   // Backup interval for background timing
     durations: { ...DEFAULT_DURATIONS },
     soundEnabled: true,
     notificationsEnabled: false,
@@ -779,8 +781,12 @@
     const isResume = !!state.pausedTime;
     if (state.pausedTime) {
       state.startTime = performance.now() - (state.totalDuration - state.remainingTime);
+      // Set absolute end time based on remaining time
+      state.endTime = Date.now() + state.remainingTime;
     } else {
       state.startTime = performance.now();
+      // Set absolute end time for the full duration
+      state.endTime = Date.now() + state.totalDuration;
       playSound('start');
       showToast(`${state.sessionType === SESSION_TYPES.WORK ? 'Work' : 'Break'} started`);
     }
@@ -790,6 +796,13 @@
 
     state.pausedTime = null;
     updatePlayPauseIcon();
+
+    // Start backup interval for background timing (runs even when tab is hidden)
+    // Browsers throttle setInterval to 1s minimum when tab is hidden, which is fine for our needs
+    if (state.backgroundInterval) {
+      clearInterval(state.backgroundInterval);
+    }
+    state.backgroundInterval = setInterval(backgroundTimerCheck, 1000);
 
     function tick(now) {
       if (!state.isRunning) return;
@@ -816,13 +829,36 @@
     state.timerInterval = requestAnimationFrame(tick);
   }
 
+  // Background timer check - runs via setInterval even when tab is hidden
+  function backgroundTimerCheck() {
+    if (!state.isRunning || !state.endTime) return;
+
+    const now = Date.now();
+    const remaining = state.endTime - now;
+
+    if (remaining <= 0) {
+      // Timer should have completed - trigger completion
+      state.remainingTime = 0;
+      updateTimerDisplay();
+      completeSession();
+    } else if (document.hidden) {
+      // Update remaining time while in background (for accurate display when tab becomes visible)
+      state.remainingTime = remaining;
+    }
+  }
+
   function pauseTimer() {
     if (!state.isRunning) return;
     const elapsedTime = state.totalDuration - state.remainingTime;
     state.isRunning = false;
     state.isPaused = true;
     state.pausedTime = performance.now();
+    state.endTime = null; // Clear the absolute end time
     cancelAnimationFrame(state.timerInterval);
+    if (state.backgroundInterval) {
+      clearInterval(state.backgroundInterval);
+      state.backgroundInterval = null;
+    }
     updatePlayPauseIcon();
     playSound('pause');
     showToast('Paused');
@@ -838,7 +874,12 @@
     state.isRunning = false;
     state.isPaused = false;
     state.pausedTime = null;
+    state.endTime = null;
     cancelAnimationFrame(state.timerInterval);
+    if (state.backgroundInterval) {
+      clearInterval(state.backgroundInterval);
+      state.backgroundInterval = null;
+    }
     resetTimerDisplay();
     updateTimerDisplay();
     updatePlayPauseIcon();
@@ -862,9 +903,14 @@
     state.isRunning = false;
     state.isPaused = false;
     state.pausedTime = null;
+    state.endTime = null;
     state.sessionType = SESSION_TYPES.WORK;
     state.sessionCount = 1;
     cancelAnimationFrame(state.timerInterval);
+    if (state.backgroundInterval) {
+      clearInterval(state.backgroundInterval);
+      state.backgroundInterval = null;
+    }
     resetTimerDisplay();
     updateTimerDisplay();
     updateSessionCalendar();
@@ -875,7 +921,12 @@
 
   function completeSession() {
     state.isRunning = false;
+    state.endTime = null;
     cancelAnimationFrame(state.timerInterval);
+    if (state.backgroundInterval) {
+      clearInterval(state.backgroundInterval);
+      state.backgroundInterval = null;
+    }
 
     // Analytics: Session Completed (before recordSession modifies state)
     Analytics.sessionCompleted(state.sessionType, state.totalDuration, state.activeTaskId);
@@ -906,7 +957,12 @@
     state.isRunning = false;
     state.isPaused = false;
     state.pausedTime = null;
+    state.endTime = null;
     cancelAnimationFrame(state.timerInterval);
+    if (state.backgroundInterval) {
+      clearInterval(state.backgroundInterval);
+      state.backgroundInterval = null;
+    }
 
     if (state.sessionType === SESSION_TYPES.WORK) {
       state.sessionType = state.sessionCount >= 4 ? SESSION_TYPES.LONG_BREAK : SESSION_TYPES.SHORT_BREAK;
@@ -926,11 +982,23 @@
   }
 
   function handleVisibilityChange() {
-    if (document.hidden && state.isRunning) {
-      state.hiddenTime = performance.now();
-    } else if (!document.hidden && state.isRunning && state.hiddenTime) {
-      state.startTime += performance.now() - state.hiddenTime;
-      state.hiddenTime = null;
+    if (!document.hidden && state.isRunning && state.endTime) {
+      // Tab became visible - sync timer with actual elapsed time
+      const now = Date.now();
+      const remaining = state.endTime - now;
+
+      if (remaining <= 0) {
+        // Timer should have completed while hidden - the background interval
+        // should handle this, but just in case, trigger completion
+        state.remainingTime = 0;
+        updateTimerDisplay();
+        completeSession();
+      } else {
+        // Update remaining time and recalculate startTime for requestAnimationFrame
+        state.remainingTime = remaining;
+        state.startTime = performance.now() - (state.totalDuration - remaining);
+        updateTimerDisplay();
+      }
     }
   }
 
